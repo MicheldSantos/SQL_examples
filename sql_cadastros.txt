@@ -1,0 +1,65 @@
+select 
+    obter_nome_estabelecimento(x.estab_b)unidade,
+    x.cad_pf_a cod_paciente,
+    x.nome_paciente paciente,
+    x.cpf_cadpf_a cpf,
+    x.dt_criacao_b data_criacao,
+    x.resp_familiab responsavel,
+    obter_nome_equipe(x.nr_equipe,'nm') equipe,
+    obter_nome_pf(x.cod_profissional) profissional,
+   (select max(ap.nr_atendimento) from atendimento_paciente ap where ap.cd_pessoa_fisica = 
+           case when x.resp_familiab = 'S' or x.cad_pf_b is null then x.cad_pf_a else x.cad_pf_b end ) nr_atendimento,
+   (select max(obter_valor_dominio(12,ie_tipo_atendimento)) from atendimento_paciente ap where ap.cd_pessoa_fisica = 
+           case when x.resp_familiab = 'S' or x.cad_pf_b is null then x.cad_pf_a else x.cad_pf_b end ) tipo_atendimento,
+    (select  obter_nome_estabelecimento(max(ap.cd_estabelecimento)) from atendimento_paciente ap where ap.cd_pessoa_fisica = 
+           case when x.resp_familiab = 'S' or x.cad_pf_b is null then x.cad_pf_a else x.cad_pf_b end ) unidade_atend    
+from(
+select
+    b.cd_estabelecimento estab_b,
+    a.cd_pessoa_fisica cad_pf_a,
+    b.cd_pessoa_fisica cad_pf_b,
+    a.nm_pessoa_fisica nome_paciente,
+    a.nr_cpf cpf_cadpf_a,
+    b.dt_atualizacao_nrec dt_criacao_b,
+    decode(b.ie_resp_familiar, 's', 'sim', 'n', 'não') resp_familiab,
+    b.nr_seq_equipe nr_equipe,
+    b.cd_profissional cod_profissional
+
+
+from pessoa_fisica a 
+inner join esus_cad_individual b on b.cd_pessoa_responsavel = a.cd_pessoa_fisica
+where 
+    b.dt_atualizacao_nrec between :dt_inicial and :dt_final
+    --and  a.cd_estabelecimento =:cd_estab 
+    and ((b.nr_seq_equipe = :nr_seq_equipe) or (:nr_seq_equipe = '0'))
+    and ((b.cd_profissional = :cd_profissional) or (:cd_profissional = '0'))
+    and ((a.cd_pessoa_fisica = :cd_pessoa_fisica) or (:cd_pessoa_fisica = '0'))
+    and exists (select 1 from esus_cad_dom_familia c  where c.cd_pessoa_fis_respon = b.cd_pessoa_responsavel)
+
+union 
+
+select
+    b.cd_estabelecimento estab_b,
+    a.cd_pessoa_fisica cad_pf_a,
+    b.cd_pessoa_fisica cad_pf_b,
+    a.nm_pessoa_fisica nome_paciente,
+    a.nr_cpf cpf_cadpf_a,
+    b.dt_atualizacao_nrec dt_criacao_b,
+    decode(b.ie_resp_familiar, 'S', 'sim', 'N', 'não') resp_familiab,
+    b.nr_seq_equipe nr_equipe,
+    b.cd_profissional cod_profissional
+
+from pessoa_fisica a 
+inner join esus_cad_individual b on b.cd_pessoa_fisica = a.cd_pessoa_fisica
+where 
+    b.dt_atualizacao_nrec between :dt_inicial and :dt_final
+    --and  a.cd_estabelecimento =:cd_estab 
+    and ((b.nr_seq_equipe = :nr_seq_equipe) or (:nr_seq_equipe = '0'))
+    and ((b.cd_profissional = :cd_profissional) or (:cd_profissional = '0'))
+    and ((a.cd_pessoa_fisica = :cd_pessoa_fisica) or (:cd_pessoa_fisica = '0'))
+    and exists (select 1 from esus_cad_dom_familia c  where c.cd_pessoa_fis_respon = a.cd_pessoa_fisica))x
+where
+     (:ie_comcad = 'S') 
+     and (:ie_semcad = 'N') 
+     and ((case when :ie_comcad = 'S' then 1 else 0 end + case when :ie_semcad = 'S' then 1 else 0 end) = 1)
+order by 1,5,7
