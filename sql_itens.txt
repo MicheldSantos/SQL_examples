@@ -1,0 +1,40 @@
+SELECT
+    x.nr_sequencia,
+    substr(x.nr_atendimento,1,255) as nr_atendimento,
+    substr(TASY.obter_protocolo_conpaci(x.nr_interno_conta),1,255) as NR_PROTOCOLO,
+     TO_CHAR(x.dt_atendimento, 'MON/YYYY') as dt_procedimento, -- Alteração feita aqui
+     substr(TASY.obter_desc_convenio(x.cd_convenio),1,255)  ds_convenio,   
+    x.dt_atendimento dt_procedimento2,
+    substr(TASY.OBTER_PESSOA_ATENDIMENTO(x.NR_ATENDIMENTO,'N'),1,255) NM_PACIENTE,
+    substr(TASY.Obter_Desc_Material(x.cd_material),1,255) ds_material,
+    x.vl_material vl_material,
+    COALESCE(rep.vl_repasse, 0) AS vl_repasse,
+    COALESCE(rep.vl_liberado, 0) AS vl_liberado,
+    COALESCE(rep.vl_repasse - rep.vl_liberado, 0) AS vl_pendente,
+    COALESCE(x.vl_material - rep.vl_liberado, 0) AS vl_receber,
+    rep.ie_status,
+    tasy.obter_valor_dominio(1129, rep.ie_status)status
+    
+FROM
+    TASY.material_atend_paciente x
+LEFT JOIN (
+    SELECT
+        nr_seq_material,
+        SUM(vl_repasse) AS vl_repasse,
+        SUM(vl_liberado) AS vl_liberado,
+        substr(ie_status,1,255) ie_status
+    FROM
+        TASY.material_repasse
+    GROUP BY
+        nr_seq_material,
+        substr(ie_status,1,255)
+) rep ON x.nr_sequencia = rep.nr_seq_material
+WHERE
+    x.cd_motivo_exc_conta IS NULL
+    and x.dt_atendimento between :dt_inicial and fim_dia(:dt_final)
+    and (rep.ie_status in ('A') OR rep.ie_status is null)
+
+ORDER BY 
+    TO_CHAR(x.dt_atendimento, 'YYYYMM') ASC,
+    TASY.obter_desc_convenio(x.cd_convenio) ASC,
+    x.nr_atendimento ASC
