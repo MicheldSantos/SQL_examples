@@ -1,0 +1,65 @@
+select
+    a.dt_recebimento data_receb,
+    d.nr_nota_fiscal nota_fiscal,
+    substr(nome_pf(a.cd_pessoa_fisica),1,100)pessoa_cobranca,
+    substr(pessoa_atendimento(f.nr_atendimento,'N'),1,100)pessoa_atendimento,
+    c.vl_recebido vl_receb,
+    d.vl_titulo vl_total,
+    trim(case when valores_caixa_rec(a.nr_sequencia, 'VRP') > 0 then 'Pix ' else '' end || case when _valores_caixa_rec(a.nr_sequencia, 'VRT') > 0 then 'TED '  else'' 
+    end || case when valores_caixa_rec(a.nr_sequencia, 'VCC') > 0 then 'Débito ' else '' end || case when valores_caixa_rec(a.nr_sequencia, 'VCD') > 0 then 
+    'Crédito ' else '' end || case when a.vl_especie > 0 then 'Espécie' ELSE '' end) forma_de_recebimento,
+    g.nr_autorizacao nr_auth,
+    case 
+        when valores_caixa_rec(a.nr_sequencia, 'VRP') > 0 then 
+            'Pix: ' || valores_caixa_rec(a.nr_sequencia, 'VRP') 
+        else null 
+    end pix,
+    case 
+        when valores_caixa_rec(a.nr_sequencia, 'VRT') > 0 then 
+            'TED: ' || valores_caixa_rec(a.nr_sequencia, 'VRT') 
+        else null 
+    end ted,
+    case 
+        when valores_caixa_rec(a.nr_sequencia, 'VCC') > 0 then 
+            'Débito: ' || valores_caixa_rec(a.nr_sequencia, 'VCC') 
+        else null 
+    end debito,
+    case 
+        when valores_caixa_rec(a.nr_sequencia, 'VCD') > 0 then 
+            'Crédito: ' || valores_caixa_rec(a.nr_sequencia, 'VCD') 
+        else null 
+    end credito,
+    case 
+        when a.vl_especie > 0 then 
+            'Espécie: ' || a.vl_especie
+        else null 
+    end especie,
+    obter_ds_transacao(a.nr_seq_trans_financ) nr_seq_trans_fin, 
+    a.nr_seq_saldo_caixa nr_seq_caixa,
+    a.nr_sequencia nr_seq_caixa_rec, 
+    e.nr_atendimento nr_atendimento,
+    e.nr_interno_conta nr_interno_conta,
+    d.nr_titulo nr_titulo,
+    substr(nome_convenio(e.cd_convenio_parametro),1,100) convenio,
+    substr(nome_estabelecimento(d.cd_estabelecimento),1,100) estabelecimento
+    
+from 
+   	caixa_receb a,
+	caixa_saldo_diario b,
+	titulo_receber_liq c,
+	titulo_receber d,
+	conta_paciente e,
+	atendimento_paciente f,
+    	movto_cartao_cr g
+where	
+	a.nr_sequencia = c.nr_seq_caixa_rec
+	and	a.nr_seq_saldo_caixa = b.nr_sequencia
+	and	c.nr_titulo = d.nr_titulo
+	and	d.nr_interno_conta = e.nr_interno_conta
+	and	e.nr_atendimento = f.nr_atendimento
+    	and c.nr_seq_caixa_rec = g.nr_seq_caixa_rec
+	and	a.dt_cancelamento is null
+	and	a.dt_fechamento is not null      
+	and	a.dt_recebimento between inicio_dia(:dt_inicial) and fim_dia(:dt_final)
+   	 and ((d.cd_estabelecimento = :cd_estab) or (:cd_estab = 0)) 
+ order by 1
