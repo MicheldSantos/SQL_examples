@@ -1,0 +1,137 @@
+SELECT DISTINCT
+        a.cd_medico_executor,
+        c.nr_seq_terceiro,
+        b.cd_pessoa_fisica,
+        a.cd_convenio,
+        a.nr_atendimento,
+        b.dt_entrada,
+        DECODE(d.nr_seq_escala, 41,(
+            SELECT
+                round(((vl_proc_ajustado) * 0.75), 2)
+            FROM
+                regra_ajuste_proc
+            WHERE
+                cd_procedimento = 10101012
+            AND cd_convenio = 49
+                AND a.dt_procedimento BETWEEN dt_inicio_vigencia AND nvl(fim_dia(dt_final_vigencia), SYSDATE)
+        ),(
+            SELECT
+                round(((vl_proc_ajustado) / 2), 2)
+            FROM
+                regra_ajuste_proc
+            WHERE
+                b.dt_entrada BETWEEN TO_DATE('01/11/2023', 'dd/mm/yyyy') AND fim_dia(TO_DATE('30/11/2023'))
+                AND cd_procedimento = 10101012
+            AND cd_convenio = 49
+                AND a.dt_procedimento BETWEEN dt_inicio_vigencia AND nvl(fim_dia(dt_final_vigencia), SYSDATE)
+        )) vl_medico,
+        a.cd_procedimento,
+        a.cd_cgc_prestador,
+        d.nr_seq_escala,
+        a.cd_setor_atendimento,
+        d.dt_inicio   dt_inicio_escala,
+        d.dt_fim      dt_fim_escala
+FROM
+        procedimento_paciente    a,
+        atendimento_paciente     b,
+        terceiro_pessoa_fisica   c,
+        escala_diaria            d
+WHERE
+        b.dt_entrada BETWEEN TO_DATE('01/11/2023', 'dd/mm/yyyy') AND fim_dia(TO_DATE('30/11/2023'))
+        AND a.nr_atendimento = b.nr_atendimento
+        AND a.cd_medico_executor = c.cd_pessoa_fisica (+)
+        AND a.cd_procedimento IN (
+            10014,
+            10101039,
+            90010299
+        )
+        AND a.cd_medico_executor = d.cd_pessoa_fisica
+        AND a.cd_motivo_exc_conta IS NULL
+        AND c.dt_fim_vigencia IS NULL
+        AND d.nr_seq_escala IN (
+            SELECT
+                r.nr_seq_escala
+            FROM
+                regra_esp_repasse_terc   t,
+                regra_esp_repasse        r
+            WHERE
+                r.nr_sequencia = t.nr_seq_regra_esp
+                AND t.nr_seq_terceiro = c.nr_seq_terceiro
+    )
+UNION
+    SELECT DISTINCT
+        a.cd_medico_executor,
+        c.nr_seq_terceiro,
+        b.cd_pessoa_fisica,
+        a.cd_convenio,
+        a.nr_atendimento,
+        b.dt_entrada,
+        DECODE(d.nr_seq_escala, 41,(
+            SELECT
+                round(((vl_proc_ajustado) * 0.75), 2)
+            FROM
+                regra_ajuste_proc
+            WHERE
+                cd_procedimento = 10101012
+                AND cd_convenio = 49
+                AND a.dt_procedimento BETWEEN dt_inicio_vigencia AND nvl(fim_dia(dt_final_vigencia), SYSDATE)
+        ),(
+            SELECT
+                round(((vl_proc_ajustado) / 2), 2)
+            FROM
+                regra_ajuste_proc
+            WHERE
+                b.dt_entrada BETWEEN TO_DATE('01/11/2023', 'dd/mm/yyyy') AND fim_dia(TO_DATE('30/11/2023'))
+                AND cd_procedimento = 10101012
+                AND cd_convenio = 49
+                AND a.dt_procedimento BETWEEN dt_inicio_vigencia AND nvl(fim_dia(dt_final_vigencia), SYSDATE)
+        )) vl_medico,
+        a.cd_procedimento,
+        a.cd_cgc_prestador,
+        d.nr_seq_escala,
+        a.cd_setor_atendimento,
+        d.dt_inicio   dt_inicio_escala,
+        d.dt_fim      dt_fim_escala
+    FROM
+        procedimento_paciente    a,
+        atendimento_paciente     b,
+        terceiro_pessoa_fisica   c,
+        escala_diaria            d
+    WHERE
+        b.dt_entrada BETWEEN TO_DATE('01/11/2023', 'dd/mm/yyyy') AND fim_dia('30/11/2023')
+        AND a.nr_atendimento = b.nr_atendimento
+        AND a.cd_medico_executor = c.cd_pessoa_fisica (+)
+        AND a.cd_procedimento IN (
+            10014,
+            10101039,
+            90010299
+        )
+        AND a.cd_medico_executor = d.cd_pessoa_fisica
+        AND a.cd_motivo_exc_conta IS NULL
+        AND c.dt_fim_vigencia IS NULL
+        AND d.nr_seq_escala IN (
+            SELECT
+                r.nr_seq_escala
+            FROM
+                regra_esp_repasse_terc   t,
+                regra_esp_repasse        r
+            WHERE
+                r.nr_sequencia = t.nr_seq_regra_esp
+                AND t.nr_seq_terceiro = c.nr_seq_terceiro
+        )
+        AND NOT EXISTS (
+            SELECT
+                1
+            FROM
+                atendimento_paciente     b2,
+                terceiro_pessoa_fisica   c2,
+                escala_diaria            d2
+            WHERE
+                b2.nr_atendimento = b.nr_atendimento
+                AND b2.dt_entrada BETWEEN d.dt_inicio AND d.dt_fim
+        )
+    ORDER BY
+        4,
+        1,
+        7,
+        3;
