@@ -1,46 +1,46 @@
 #### Banda Detalhes ###
 
 select 
-x.nr_atendimento,
-x.pessoa_fisica,
-x.ds_senha_qmatic,
-x.dt_retirada_senha,
-x.dt_chamada_senha,
-obter_dif_data(x.dt_ger_senha, x.dt_chamada_senha,'') espera_chamada,
-x.dt_entrada,     
-x.espera_triagem,
-x.dt_inicio_triagem,
-x.dt_fim_triagem,
-x.tempo_triagem,
-x.dt_inicio_consulta,
-x.dt_fim_consulta,
-x.tempo_consulta,
-x.dt_alta,
-obter_dif_data(to_date(x.dt_retirada_senha,'dd/mm/yyyy hh24:mi:ss'),x.dt_alta,'') tempo_atendi
+    x.nr_atendimento,
+    x.pessoa_fisica,
+    x.ds_senha_qmatic,
+    x.dt_retirada_senha,
+    x.dt_chamada_senha,
+    dif_data(x.dt_ger_senha, x.dt_chamada_senha,'') espera_chamada,
+    x.dt_entrada,     
+    x.espera_triagem,
+    x.dt_inicio_triagem,
+    x.dt_fim_triagem,
+    x.tempo_triagem,
+    x.dt_inicio_consulta,
+    x.dt_fim_consulta,
+    x.tempo_consulta,
+    x.dt_alta,
+    dif_data(to_date(x.dt_retirada_senha,'dd/mm/yyyy hh24:mi:ss'),x.dt_alta,'') tempo_atendi
 from
-(select
-Obter_Setor_Atendimento(a.nr_atendimento) setor,
-a.nr_atendimento,
-a.ds_senha_qmatic,
-obter_dados_pf(a.cd_pessoa_fisica,'PNC') pessoa_fisica,
-obter_dados_senha(a.NR_SEQ_PAC_SENHA_FILA,'DG') dt_retirada_senha,
-(select b.dt_geracao_senha from paciente_senha_fila b where a.NR_SEQ_PAC_SENHA_FILA = b.nr_sequencia) dt_ger_senha, 
-(select b.dt_primeira_chamada from paciente_senha_fila b where a.NR_SEQ_PAC_SENHA_FILA = b.nr_sequencia) dt_chamada_senha,
-a.dt_entrada,
-obter_dif_data(a.dt_entrada, a.dt_inicio_atendimento,'') espera_triagem,           
-a.dt_inicio_atendimento dt_inicio_triagem,
-a.dt_fim_triagem,
-obter_dif_data(a.dt_inicio_atendimento, a.dt_fim_triagem,'') tempo_triagem,
-a.dt_atend_medico dt_inicio_consulta,
-a.dt_fim_consulta,
-obter_dif_data(a.dt_atend_medico, a.dt_fim_consulta,'') tempo_consulta,
-a.dt_alta
-from
-atendimento_paciente a
-where 
-a.dt_entrada between inicio_dia(:dt_inicial) and fim_dia(:dt_final)
-order by a.nr_atendimento
-)x
+    (select
+        Setor_Atendimento(a.nr_atendimento) setor,
+        a.nr_atendimento,
+        a.ds_senha_qmatic,
+        dados_pf(a.cd_pessoa_fisica,'PNC') pessoa_fisica,
+        dados_senha(a.NR_SEQ_PAC_SENHA_FILA,'DG') dt_retirada_senha,
+        (select b.dt_geracao_senha from paciente_senha_fila b where a.NR_SEQ_PAC_SENHA_FILA = b.nr_sequencia) dt_ger_senha, 
+        (select b.dt_primeira_chamada from paciente_senha_fila b where a.NR_SEQ_PAC_SENHA_FILA = b.nr_sequencia) dt_chamada_senha,
+        a.dt_entrada,
+        dif_data(a.dt_entrada, a.dt_inicio_atendimento,'') espera_triagem,           
+        a.dt_inicio_atendimento dt_inicio_triagem,
+        a.dt_fim_triagem,
+        dif_data(a.dt_inicio_atendimento, a.dt_fim_triagem,'') tempo_triagem,
+        a.dt_atend_medico dt_inicio_consulta,
+        a.dt_fim_consulta,
+        dif_data(a.dt_atend_medico, a.dt_fim_consulta,'') tempo_consulta,
+        a.dt_alta
+    from
+    atendimento_paciente a
+        where 
+        a.dt_entrada between inicio_dia(:dt_inicial) and fim_dia(:dt_final)
+        order by a.nr_atendimento
+    )x
 
 ############################
 
@@ -73,5 +73,5 @@ SELECT
     WHERE a.dt_entrada BETWEEN inicio_dia(:dt_inicial) AND fim_dia(:dt_final)AND 
     ORDER BY a.nr_atendimento)x
 
-
 ######################
+
